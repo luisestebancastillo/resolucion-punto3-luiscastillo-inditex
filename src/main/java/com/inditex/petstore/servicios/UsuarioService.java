@@ -10,9 +10,22 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+
+/**
+ * UsuarioService es una clase que proporciona métodos para interactuar con un servicio web que gestiona usuarios.
+ *
+ * Utiliza el servicio web de PetStore para crear usuarios y consultar información de usuarios existentes.
+ */
 public class UsuarioService {
     private final String baseUrl = "https://petstore.swagger.io/v2/user/";
     private ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * Crea un nuevo usuario en el servicio web.
+     *
+     * @param usuario El objeto Usuario que se desea crear.
+     */
     public void crearUsuario(Usuario usuario) {
         try {
             HttpClient httpClient = HttpClients.createDefault();
@@ -43,6 +56,12 @@ public class UsuarioService {
         }
     }
 
+    /**
+     * Consulta un usuario por su nombre de usuario.
+     *
+     * @param username El nombre de usuario del usuario que se desea consultar.
+     * @return Un objeto Usuario si se encuentra, o null en caso de error o si no se encuentra.
+     */
     public Usuario consultarUsuarioPorNombre(String username) {
         HttpClient httpClient = HttpClients.createDefault();
         HttpGet httpGet = new HttpGet(baseUrl + username);
@@ -51,15 +70,15 @@ public class UsuarioService {
             HttpResponse response = httpClient.execute(httpGet);
 
             if (response.getStatusLine().getStatusCode() == 200) {
-                // Procesar la respuesta y convertirla a un objeto Usuario
+                // Procesa la respuesta y conviértela a un objeto Usuario
                 Usuario usuario = objectMapper.readValue(response.getEntity().getContent(), Usuario.class);
                 return usuario;
             } else {
-                // Manejar errores
+                // Maneja errores
                 System.err.println("Error al consultar el usuario. Código de respuesta: " + response.getStatusLine().getStatusCode());
             }
         } catch (Exception e) {
-            // Manejar excepciones
+            // Maneja excepciones
             e.printStackTrace();
         }
 

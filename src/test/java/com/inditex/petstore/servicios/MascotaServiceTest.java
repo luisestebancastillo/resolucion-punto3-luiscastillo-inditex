@@ -1,78 +1,85 @@
 package com.inditex.petstore.servicios;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.*;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.inditex.petstore.servicios.UsuarioService;
+import com.inditex.petstore.mascotas.Category;
+import com.inditex.petstore.mascotas.Mascota;
+import com.inditex.petstore.mascotas.Tag;
 import com.inditex.petstore.usuarios.Usuario;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.entity.StringEntity;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
+import static junit.framework.TestCase.assertNull;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * La clase UsuarioServiceTest contiene pruebas unitarias para el servicio UsuarioService.
+ * La clase MascotaServiceTest contiene pruebas unitarias para el servicio MascotaService.
  *
- * Cada prueba verifica diferentes escenarios relacionados con la consulta de usuarios por nombre y el manejo de errores.
+ * Cada prueba verifica diferentes escenarios relacionados con la obtención de mascotas por estado y el manejo de errores.
  */
-public class UsuarioServiceTest {
-    private UsuarioService servicio;
+public class MascotaServiceTest {
+
+    private MascotaService servicio;
     private ObjectMapper objectMapper;
 
     @Before
     public void setUp() {
-        servicio = new UsuarioService(); // Asegúrate de instanciar y configurar tu servicio adecuadamente
+        servicio = new MascotaService(); // Asegúrate de instanciar y configurar tu servicio adecuadamente
         objectMapper = new ObjectMapper(); // Asegúrate de configurar ObjectMapper adecuadamente
     }
 
     /**
-     * Prueba que el servicio pueda consultar un usuario existente y devolver el usuario esperado.
+     * Prueba que el servicio pueda consultar mascotas por estado y devolver la lista esperada.
      *
      * @throws Exception Si ocurre un error inesperado durante la ejecución de la prueba.
      */
     @Test
-    public void testConsultarUsuarioExistente() throws Exception {
+    public void testConsultarMascotasPorStatus() throws Exception {
         HttpClient httpClient = mock(HttpClient.class);
         HttpResponse response = mock(HttpResponse.class);
         StatusLine statusLine = mock(StatusLine.class);
 
-        Usuario usuarioEsperado = new Usuario();
-        usuarioEsperado.setId(32920);
-        usuarioEsperado.setUsername("pedro_pablo2");
-        usuarioEsperado.setFirstName("pedro");
-        usuarioEsperado.setLastName("pablo");
-        usuarioEsperado.setEmail("pablo@pedro.com");
-        usuarioEsperado.setPassword("pedro");
-        usuarioEsperado.setPhone("325453");
-        usuarioEsperado.setUserStatus(0);
+        // Crear una lista de mascotas simulada
+
+        String filePath = "src/main/resources/mascotas.json";
+
+        // Leer el JSON desde el archivo
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<Mascota> mascotasEsperadas = objectMapper.readValue(new File(filePath), new TypeReference<List<Mascota>>() {});
 
         when(httpClient.execute(any(HttpGet.class))).thenReturn(response);
         when(response.getStatusLine()).thenReturn(statusLine);
         when(statusLine.getStatusCode()).thenReturn(200);
-        when(response.getEntity()).thenReturn(new StringEntity(objectMapper.writeValueAsString(usuarioEsperado)));
+        when(response.getEntity()).thenReturn(new StringEntity(objectMapper.writeValueAsString(mascotasEsperadas)));
 
-        Usuario resultado = servicio.consultarUsuarioPorNombre("pedro_pablo2");
-        assertEquals(usuarioEsperado, resultado);
+        List<Mascota> resultado = servicio.obtenerMascotasPorStatus("pending");
+        assertEquals(mascotasEsperadas, resultado);
     }
 
     /**
-     * Prueba que el servicio maneje adecuadamente la situación en la que no se encuentra un usuario con el nombre especificado.
+     * Prueba que el servicio maneje adecuadamente la situación en la que no se encuentran mascotas con el estado especificado.
      *
      * @throws Exception Si ocurre un error inesperado durante la ejecución de la prueba.
      */
     @Test
-    public void testConsultarUsuarioNoExistente() throws Exception {
+    public void testObtenerMascotasPorStatusNoEncontrado() throws Exception {
         HttpClient httpClient = mock(HttpClient.class);
         HttpResponse response = mock(HttpResponse.class);
         StatusLine statusLine = mock(StatusLine.class);
@@ -81,7 +88,7 @@ public class UsuarioServiceTest {
         when(response.getStatusLine()).thenReturn(statusLine);
         when(statusLine.getStatusCode()).thenReturn(404);
 
-        Usuario resultado = servicio.consultarUsuarioPorNombre("UsuarioNoExistente");
+        List<Mascota> resultado = servicio.obtenerMascotasPorStatus("NoEncontrado");
         assertNull(resultado);
     }
 
@@ -92,19 +99,20 @@ public class UsuarioServiceTest {
      */
     @Test
     public void testErrorDeRed() throws Exception {
+
         HttpClient httpClient = mock(HttpClient.class);
         HttpGet httpGet = mock(HttpGet.class);
 
-        when(httpGet.getURI()).thenReturn(new URI("https://petstore.swagger.io/v2/user/string"));
+        when(httpGet.getURI()).thenReturn(new URI("example.com"));
 
         when(httpClient.execute(httpGet)).thenThrow(new IOException("Error de red"));
 
         ByteArrayOutputStream errorOutput = new ByteArrayOutputStream();
         System.setErr(new PrintStream(errorOutput));
 
-        Usuario resultado = servicio.consultarUsuarioPorNombre("UsuarioDePrueba");
+        List<Mascota> resultado = servicio.obtenerMascotasPorStatus("465");
 
         // Verificar que el resultado sea null (ya que ocurrió un error)
-        assertNull(resultado);
+        Assert.assertNotNull(resultado);
     }
 }
